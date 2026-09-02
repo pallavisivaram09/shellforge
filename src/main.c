@@ -3,17 +3,20 @@
 #include <string.h>
 #include <readline/history.h>
 #include <readline/readline.h>
+
 #include "history.h"
+#include "token.h"
+#include "lexer.h"
 
 int main(void)
 {
-    // Display a welcome banner when the shell starts
     printf("=====================================\n");
-    printf("        Shellforge\n");
-    printf(" A Unix Style Shell written in C\n");
+    printf("          Shellforge\n");
+    printf("   A Unix Style Shell written in C\n");
     printf("=====================================\n");
 
-    // Initializing History
+    token_list_t tokens;
+
     using_history();
 
     char *line;
@@ -22,31 +25,71 @@ int main(void)
     {
         line = readline("shellforge$ ");
 
+        /* Ctrl+D */
         if (line == NULL)
         {
             printf("\nGoodbye!\n");
             break;
         }
 
+        /* Exit command */
+        if (strcmp(line, "exit") == 0)
+        {
+            free(line);
+            printf("Exiting...\n");
+            break;
+        }
+
+        /* Empty input */
         if (strlen(line) == 0)
         {
             free(line);
             continue;
         }
 
-        add_history(line);
-        printf("YOU ENTERED : %s\n", line);
-
-        if (strcmp(line, "exit") == 0)
+        /* History command */
+        if (strcmp(line, "history") == 0)
         {
+            HIST_ENTRY **hist = history_list();
+
+            if (hist == NULL)
+            {
+                printf("history is empty.\n");
+            }
+            else
+            {
+                int count = 0;
+
+                while (hist[count] != NULL)
+                {
+                    count++;
+                }
+
+                char *list[count];
+
+                for (int i = 0; i < count; i++)
+                {
+                    list[i] = hist[i]->line;
+                }
+
+                print_history(list, count);
+            }
+
             free(line);
-            printf("Exiting . . .\n");
-            break;
+            continue;
         }
+
+        /* Add command to history */
+        add_history(line);
+
+        /* Lex the command */
+        lexer(line, &tokens);
+
+        /* Display tokens */
+        token_print(&tokens);
 
         free(line);
     }
 
-    clear_history();
     return 0;
 }
